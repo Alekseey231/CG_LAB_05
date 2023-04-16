@@ -22,9 +22,6 @@ def create_error_window(title, message):
     error.setText(message)
     error.exec()
 
-
-# TODO вырождение в линию
-# TODO Очистка сцены
 class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -58,14 +55,12 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.scene.addPixmap(QPixmap.fromImage(self.image))
         self.p.end()
 
-        # self.all_polygon = [[PyQt5.QtCore.QPoint(-137, 124), PyQt5.QtCore.QPoint(-42, -97), PyQt5.QtCore.QPoint(72, 106), PyQt5.QtCore.QPoint(-137, 124)]]
         self.current_polygon = []
         self.all_polygon = []
         self.count_poly = 0
         self.cur_label = []
 
         self.init_table()
-        # self.tableWidget.verticalHeader().setVisible(False)
 
         self.p_fill.clicked.connect(self.fill)
 
@@ -74,8 +69,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.b_add_point.clicked.connect(self.get_point)
         self.b_get_time.clicked.connect(self.get_time)
 
-        # self.set_validators()
-
     def get_point(self):
         try:
             x = int(self.l_x.text())
@@ -83,6 +76,8 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         except Exception as e:
             create_error_window("Error!", "Некорретный ввод")
         else:
+            self.l_x.setText("")
+            self.l_y.setText("")
             self.add_point(QPoint(x, y))
 
     def set_color(self):
@@ -122,7 +117,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         if len(self.all_polygon) == 0:
             create_error_window("Error!", "Необходимо закончить ввод области перед заливкой")
             return
-        # print(self.all_polygon)
+
         self.image.fill(Qt.white)
         for poly in self.all_polygon:
 
@@ -142,7 +137,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             for poly in self.all_polygon:
                 self.draw_time(poly)
-        # self.all_polygon = []
 
     def add_row(self, num1, num2):
         self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -181,19 +175,10 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         if len(self.current_polygon) < 3:
             create_error_window("Error!", "Полигон должен состоять минимум из 3-х точек!")
         else:
-            # self.count_poly += 1
-            # self.cur_label.append("")
-
-            # self.add_row("Многоугольник №" + str(self.count_poly), "")
-            # self.tableWidget.setSpan(self.tableWidget.rowCount() - 1, 0, 1, 2)
-            # self.tableWidget.setVerticalHeaderLabels(self.cur_label)
-
             self.current_polygon.append(self.current_polygon[0])
             self.draw_line(self.current_polygon[-1], self.current_polygon[-2])
             self.all_polygon.append(self.current_polygon)
             self.current_polygon = []
-
-            # print(self.all_polygon)
 
     def draw_point(self, point: QPoint):
 
@@ -205,11 +190,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.scene.addPixmap(QPixmap.fromImage(self.image))
 
     def draw_line(self, start_point: QPoint, end_point: QPoint):
-        self.p.begin(self.image)
-        self.p.setTransform(self.transform)
-        self.p.setPen(self.pen)
 
-        # self.p.drawLine(start_point, end_point)
         self.my_draw_line(start_point, end_point)
 
         self.scene.clear()
@@ -233,15 +214,13 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                 count += 1
                 self.graphicsView.update()
                 QApplication.processEvents()
-                time.sleep(0.0001)
-
+                time.sleep(0.000001)
         except Exception as e:
             print(e)
 
     def draw_points_all(self, all_points: list):
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
-        # green = QColor(0, 255, 0)
         green = self.color
 
         for point in all_points:
@@ -265,7 +244,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
     def draw_points_normaly(self, all_points: list):
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
-        # green = QColor(0, 255, 0)
         green = self.color
 
         for point in all_points:
@@ -285,42 +263,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.scene.clear()
         self.scene.addPixmap(QPixmap.fromImage(self.image))
-
-    def draw_points(self, all_points: list):
-        new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
-        new_image.fill(Qt.transparent)
-        white = QColor(255, 255, 255, 255)
-        black = QColor(0, 0, 0, 255)
-        green = self.color
-        try:
-            for point in all_points:
-
-                color = new_image.pixel(round(point[0]) + new_image.width() // 2,
-                                        (round(point[1]) * -1 + new_image.width() // 2))
-
-                if is_transparent(color) or QColor(color).rgb() == white.rgb():
-                    new_image.setPixel(round(point[0]) + new_image.width() // 2,
-                                       (round(point[1]) * -1 + new_image.width() // 2),
-                                       green.rgba())
-                else:
-                    new_image.setPixel(round(point[0]) + new_image.width() // 2,
-                                       (round(point[1]) * -1 + new_image.width() // 2),
-                                       0)
-        except Exception as e:
-            print(e)
-        try:
-
-            self.p.begin(self.image)
-            self.p.setCompositionMode(QPainter.CompositionMode_SourceOver)
-            self.p.drawImage(0, 0, new_image)
-
-            # self.p.end()
-        except Exception as e:
-            print(e)
-
-        self.scene.clear()
-        self.scene.addPixmap(QPixmap.fromImage(self.image))
-        # self.image = res_image
 
     def get_time(self):
         self.comboBox.setCurrentIndex(0)
@@ -368,14 +310,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                             "3) Для того, чтобы построить вертикальное ребро - после ввода точки нужно удерживать "
                             "shift при вводе следующей точки\n"
                             "4) Для построения горизонтального ребра нужно удерживать Ctrl при вводе следующей точки\n")
-
-
-def compare_colors(color1, color2):
-    """Compare two colors and return True if they are equal, False otherwise."""
-    return (color1.red() == color2.red() and
-            color1.green() == color2.green() and
-            color1.blue() == color2.blue() and
-            color1.alpha() == color2.alpha())
 
 
 def is_transparent(pixel_value):

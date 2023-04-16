@@ -8,8 +8,6 @@ from PyQt5.QtCore import QPoint
 def fill_polygon_time(polygon: List[QPoint]):
     max_point = max(polygon, key=lambda point: point.x())
 
-    # print(max_point)
-
     edges = []
     for i in range(1, len(polygon)):
         edges.append([polygon[i - 1], polygon[i]])
@@ -47,12 +45,3 @@ def fill_polygon_time(polygon: List[QPoint]):
 def get_intersection_point(start_point: QPoint, end_point: QPoint, y):
     return (y - start_point.y()) * (end_point.x() - start_point.x()) / (
             end_point.y() - start_point.y()) + start_point.x()
-
-
-l = [PyQt5.QtCore.QPoint(-58, 114), PyQt5.QtCore.QPoint(133, -62), PyQt5.QtCore.QPoint(46, 184),
-      PyQt5.QtCore.QPoint(-58, 114)]
-"""
-gen = fill_polygon_time(l)
-for i in gen:
-    print(i)
-    input()"""

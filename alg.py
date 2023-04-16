@@ -5,12 +5,8 @@ from typing import List, Union
 from PyQt5.QtCore import QPoint
 
 
-# TODO два клика в 1 точку
-
 def fill_polygon(polygon: List[QPoint]):
     max_point = max(polygon, key=lambda point: point.x())
-
-    # print(max_point)
 
     edges = []
     for i in range(1, len(polygon)):
@@ -27,7 +23,7 @@ def fill_polygon(polygon: List[QPoint]):
         while y < edge[1].y():
             x = get_intersection_point(edge[0], edge[1], y)
 
-            if floor(x) + 1 / 2 > x + 10:
+            if (floor(x) + 1 / 2) > x + 10:
                 points_for_edge.append([floor(x), floor(y)])
             x = floor(x)
             x += 1
@@ -46,15 +42,6 @@ def fill_polygon(polygon: List[QPoint]):
 def get_intersection_point(start_point: QPoint, end_point: QPoint, y):
     return (y - start_point.y()) * (end_point.x() - start_point.x()) / (
             end_point.y() - start_point.y()) + start_point.x()
-
-
-def f(l):
-    res = []
-    for item in l:
-        if item in res:
-            print(item)
-        else:
-            res.append(item)
 
 
 def sign(x: float) -> int:
