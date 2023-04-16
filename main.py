@@ -1,14 +1,17 @@
+import asyncio
 import sys
+import time
 from typing import List
 
 import PyQt5
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPen, QTransform, QPainter, QPixmap, QColor, QImage
-from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel
+from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel, QApplication
 from fontTools.pens.qtPen import QtPen
 
 from alg import fill_polygon, brezenhem_int
+from alg_time import fill_polygon_time
 from design_all import Ui_MainWindow
 
 
@@ -71,21 +74,25 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.set_validators()
 
     def fill(self):
-        if len(self.all_polygon) == 1:
-            points = fill_polygon(self.all_polygon[0])
-            self.draw_points(points)
+        if self.comboBox.currentIndex() == 0:
+            if len(self.all_polygon) == 1:
+                points = fill_polygon(self.all_polygon[0])
+                self.draw_points(points)
+            else:
+                for poly in self.all_polygon:
+                    points = fill_polygon(poly)
+                    self.draw_points_normaly(points)
+
+            for poly in self.all_polygon:
+
+                for i in range(1, len(poly)):
+                    try:
+                        self.draw_line(poly[i - 1], poly[i])
+                    except Exception as e:
+                        print(e)
         else:
             for poly in self.all_polygon:
-                points = fill_polygon(poly)
-                self.draw_points_normaly(points)
-
-        for poly in self.all_polygon:
-
-            for i in range(1, len(poly)):
-                try:
-                    self.draw_line(poly[i - 1], poly[i])
-                except Exception as e:
-                    print(e)
+                self.draw_time(poly)
         self.all_polygon = []
 
     def add_row(self, num1, num2):
@@ -122,7 +129,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
             self.all_polygon.append(self.current_polygon)
             self.current_polygon = []
 
-            print(self.all_polygon)
+            #print(self.all_polygon)
 
     def draw_point(self, point: QPoint):
 
@@ -153,25 +160,24 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                                 (round(point[1]) * -1 + self.image.width() // 2),
                                 black.rgb())
 
+    def draw_time(self, poly):
+        gen = fill_polygon_time(poly)
+        try:
+            count = 0
+            for row in gen:
+                self.draw_points_normaly(row)
+                count+=1
+                self.graphicsView.update()
+                QApplication.processEvents()
+                time.sleep(0.0001)
+
+        except Exception as e:
+            print(e)
 
     def draw_points_normaly(self, all_points: list):
-        # self.image.fill(Qt.white)
-        # new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
-        # new_image.fill(Qt.transparent)
-
-        # res_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
-        # res_image.fill(Qt.transparent)
-        # print(self.p.pen().color().getRgb())
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
         green = QColor(0, 255, 0)
-        # print(color.rgb())
-        # self.image.setPixel(0 + self.image.width() / 2, 0 + self.image.width() / 2, self.p.pen().color().rgb())
-
-        # color = QColor(self.image.pixel(0, 0))
-        # print(color.getRgb())
-
-        # print(QColor(self.image.pixel(0, 0)).getRgb() == (255, 255, 255, 255))
 
         for point in all_points:
             color = QColor(self.image.pixel(round(point[0]) + self.image.width() // 2,
@@ -181,6 +187,8 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.image.setPixel(round(point[0]) + self.image.width() // 2,
                                     (round(point[1]) * -1 + self.image.width() // 2),
                                     green.rgb())
+            elif color.rgb() == black.rgb():
+                pass
             else:
                 self.image.setPixel(round(point[0]) + self.image.width() // 2,
                                     (round(point[1]) * -1 + self.image.width() // 2),
@@ -188,7 +196,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.scene.clear()
         self.scene.addPixmap(QPixmap.fromImage(self.image))
-        # self.image = res_image
 
     def draw_points(self, all_points: list):
         # self.image.fill(Qt.white)

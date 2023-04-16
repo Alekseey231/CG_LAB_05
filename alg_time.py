@@ -51,6 +51,8 @@ def get_intersection_point(start_point: QPoint, end_point: QPoint, y):
 
 l = [PyQt5.QtCore.QPoint(-58, 114), PyQt5.QtCore.QPoint(133, -62), PyQt5.QtCore.QPoint(46, 184),
       PyQt5.QtCore.QPoint(-58, 114)]
+"""
 gen = fill_polygon_time(l)
 for i in gen:
     print(i)
+    input()"""
