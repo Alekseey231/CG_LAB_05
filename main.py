@@ -4,7 +4,7 @@ from typing import List
 import PyQt5
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QPen, QTransform, QPainter, QPixmap, QColor
+from PyQt5.QtGui import QPen, QTransform, QPainter, QPixmap, QColor, QImage
 from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox
 from fontTools.pens.qtPen import QtPen
 
@@ -70,9 +70,14 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.set_validators()
 
     def fill(self):
-        for poly in self.all_polygon:
-            points = fill_polygon(poly)
+        if len(self.all_polygon) == 1:
+            points = fill_polygon(self.all_polygon[0])
             self.draw_points(points)
+        else:
+            for poly in self.all_polygon:
+                points = fill_polygon(poly)
+                self.draw_points_normaly(points)
+
         """
         for poly in self.all_polygon:
             for i in range(1, len(poly)):
@@ -120,7 +125,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.p.setTransform(self.transform)
         self.p.setPen(self.pen)
 
-        #self.p.drawLine(start_point, end_point)
+        # self.p.drawLine(start_point, end_point)
         self.my_draw_line(start_point, end_point)
 
         self.scene.clear()
@@ -129,14 +134,19 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def my_draw_line(self, start_point, end_point):
         all_points = brezenhem_int(start_point, end_point)
-        black = QColor(0, 255, 0)
+        black = QColor(0, 0, 0)
         for point in all_points:
             self.image.setPixel(round(point[0]) + self.image.width() // 2,
                                 (round(point[1]) * -1 + self.image.width() // 2),
                                 black.rgb())
 
-    def draw_points(self, all_points: list):
-        #self.image.fill(Qt.white)
+    def draw_points_normaly(self, all_points: list):
+        # self.image.fill(Qt.white)
+        #new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
+        #new_image.fill(Qt.transparent)
+
+        #res_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
+        #res_image.fill(Qt.transparent)
         # print(self.p.pen().color().getRgb())
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
@@ -144,28 +154,113 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         # print(color.rgb())
         # self.image.setPixel(0 + self.image.width() / 2, 0 + self.image.width() / 2, self.p.pen().color().rgb())
 
-        #color = QColor(self.image.pixel(0, 0))
-        #print(color.getRgb())
+        # color = QColor(self.image.pixel(0, 0))
+        # print(color.getRgb())
 
         # print(QColor(self.image.pixel(0, 0)).getRgb() == (255, 255, 255, 255))
 
         for point in all_points:
             color = QColor(self.image.pixel(round(point[0]) + self.image.width() // 2,
-                                            (round(point[1]) * -1 + self.image.width() // 2)))
+                                           (round(point[1]) * -1 + self.image.width() // 2)))
 
             if color.rgb() == white.rgb():
                 self.image.setPixel(round(point[0]) + self.image.width() // 2,
-                                    (round(point[1]) * -1 + self.image.width() // 2),
-                                    black.rgb())
-            elif color.rgb() == green.rgb():
-                pass
+                                   (round(point[1]) * -1 + self.image.width() // 2),
+                                   green.rgb())
             else:
                 self.image.setPixel(round(point[0]) + self.image.width() // 2,
-                                    (round(point[1]) * -1 + self.image.width() // 2),
-                                    white.rgb())
+                                   (round(point[1]) * -1 + self.image.width() // 2),
+                                   white.rgb())
+        try:
+
+            #self.p.begin(self.image)
+            #self.p.setCompositionMode(QPainter.CompositionMode_SourceOver)
+            #self.p.drawImage(0, 0, new_image)
+
+
+            self.all_polygon = []
+
+            #self.p.end()
+        except Exception as e:
+            print(e)
 
         self.scene.clear()
         self.scene.addPixmap(QPixmap.fromImage(self.image))
+        #self.image = res_image
+
+
+
+    def draw_points(self, all_points: list):
+        # self.image.fill(Qt.white)
+        new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
+        new_image.fill(Qt.transparent)
+
+        # res_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
+        # res_image.fill(Qt.transparent)
+        # print(self.p.pen().color().getRgb())
+        white = QColor(255, 255, 255, 255)
+        black = QColor(0, 0, 0, 255)
+        green = QColor(0, 255, 0, 255)
+        # print(color.rgb())
+        # self.image.setPixel(0 + self.image.width() / 2, 0 + self.image.width() / 2, self.p.pen().color().rgb())
+
+        # color = QColor(self.image.pixel(0, 0))
+        # print(color.getRgb())
+
+        # print(QColor(self.image.pixel(0, 0)).getRgb() == (255, 255, 255, 255))
+        try:
+            for point in all_points:
+
+                color = new_image.pixel(round(point[0]) + new_image.width() // 2,
+                                        (round(point[1]) * -1 + new_image.width() // 2))
+
+                if is_transparent(color) or QColor(color).rgb() == white.rgb():
+                    new_image.setPixel(round(point[0]) + new_image.width() // 2,
+                                       (round(point[1]) * -1 + new_image.width() // 2),
+                                       green.rgba())
+                else:
+                    new_image.setPixel(round(point[0]) + new_image.width() // 2,
+                                       (round(point[1]) * -1 + new_image.width() // 2),
+                                       0)
+        except Exception as e:
+            print(e)
+        try:
+
+            self.p.begin(self.image)
+            self.p.setCompositionMode(QPainter.CompositionMode_SourceOver)
+            self.p.drawImage(0, 0, new_image)
+
+            self.all_polygon = []
+
+            # self.p.end()
+        except Exception as e:
+            print(e)
+
+        self.scene.clear()
+        self.scene.addPixmap(QPixmap.fromImage(self.image))
+        # self.image = res_image
+
+
+def compare_colors(color1, color2):
+    """Compare two colors and return True if they are equal, False otherwise."""
+    return (color1.red() == color2.red() and
+            color1.green() == color2.green() and
+            color1.blue() == color2.blue() and
+            color1.alpha() == color2.alpha())
+
+
+def is_transparent(pixel_value):
+    alpha = (pixel_value >> 24) & 0xFF  # значение альфа-канала
+    if alpha == 0:
+        return True
+    else:
+        red = (pixel_value >> 16) & 0xFF  # значение красного канала
+        green = (pixel_value >> 8) & 0xFF  # значение зеленого канала
+        blue = pixel_value & 0xFF  # значение синего канала
+        # if red == 0 and green == 0 and blue == 0:
+
+        # else:
+        # print("Пиксель цветной")
 
 
 if __name__ == "__main__":

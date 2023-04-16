@@ -20,8 +20,8 @@ class CustomGraphicsView(QGraphicsView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.image = QImage(5000, 5000, QImage.Format_RGB32)
-        self.image.fill(Qt.white)
+        self.image = QImage(5000, 5000, QImage.Format_ARGB32)
+        self.image.fill(Qt.transparent)
         self.zoom = 0
         self.setTransform(QTransform().scale(1, -1))
 
