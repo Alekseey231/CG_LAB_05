@@ -7,7 +7,7 @@ import PyQt5
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPen, QTransform, QPainter, QPixmap, QColor, QImage
-from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel, QApplication
+from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel, QApplication, QTableWidget
 from fontTools.pens.qtPen import QtPen
 
 from alg import fill_polygon, brezenhem_int
@@ -31,6 +31,8 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.graphicsView.setScene(self.scene)
         self.graphicsView.pointSignal.connect(self.add_point)
         self.graphicsView.endSignal.connect(self.complete_polygon)
+        self.graphicsView.keySignal.connect(self.key_press)
+
         self.pen = QPen()
         self.pen.setColor(Qt.green)
 
@@ -54,6 +56,17 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.count_poly = 0
         self.cur_label = []
 
+        self.init_table()
+        # self.tableWidget.verticalHeader().setVisible(False)
+
+        self.p_fill.clicked.connect(self.fill)
+
+        self.b_clear.clicked.connect(self.clear_scene)
+
+        # self.set_validators()
+
+    def init_table(self):
+        self.tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setRowCount(0)
         self.tableWidget.setHorizontalHeaderLabels(["x", "y"])
@@ -62,16 +75,14 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tableWidget.horizontalHeaderItem(1).setToolTip("Column 2 ")
         self.tableWidget.horizontalHeaderItem(0).setTextAlignment(Qt.AlignLeft)
         self.tableWidget.horizontalHeaderItem(1).setTextAlignment(Qt.AlignRight)
-        # self.tableWidget.verticalHeader().setVisible(False)
 
-        self.p_fill.clicked.connect(self.fill)
-        # print(self.tableWidget.item().text())
-
-        # self.tableWidget.insertColumn(self.tableWidget.rowCount())
-        # self.tableWidget.insertColumn(self.tableWidget.rowCount())
-        # self.tableWidget.insertRow(self.tableWidget.rowCount())
-
-        # self.set_validators()
+    def clear_scene(self):
+        #self.tableWidget.clear()
+        self.tableWidget.setRowCount(0)
+        self.image = self.graphicsView.image
+        self.image.fill(Qt.white)
+        self.scene.clear()
+        self.scene.addPixmap(QPixmap.fromImage(self.image))
 
     def fill(self):
         if self.comboBox.currentIndex() == 0:
@@ -99,6 +110,16 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tableWidget.insertRow(self.tableWidget.rowCount())
         self.tableWidget.setItem(self.tableWidget.rowCount() - 1, 0, QTableWidgetItem(str(num1)))
         self.tableWidget.setItem(self.tableWidget.rowCount() - 1, 1, QTableWidgetItem(str(num2)))
+
+    #shift - вертикальное ребро
+    def key_press(self, point: QPoint, sign_type: int):
+        if len(self.current_polygon) > 0:
+            if sign_type == 0:
+                point = QPoint(self.current_polygon[-1].x(), point.y())
+            else:
+                point = QPoint(point.x(), self.current_polygon[-1].y())
+        self.add_point(point)
+
 
     def add_point(self, point: QPoint):
         self.current_polygon.append(point)

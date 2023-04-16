@@ -9,21 +9,29 @@
 from typing import List, Union
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QPointF
-from PyQt5.QtGui import QTransform, QImage
-from PyQt5.QtWidgets import QGraphicsView
+from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QPointF, QEvent
+from PyQt5.QtGui import QTransform, QImage, QMouseEvent
+from PyQt5.QtWidgets import QGraphicsView, QApplication
 
 
 class CustomGraphicsView(QGraphicsView):
     pointSignal = pyqtSignal(QPoint)
     endSignal = pyqtSignal(int)
+    keySignal = pyqtSignal(QPoint, int)
+
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.last_x = None
+        self.last_y = None
+        self.last_mouse_pos = None
         self.image = QImage(5000, 5000, QImage.Format_ARGB32)
         self.image.fill(Qt.transparent)
         self.zoom = 0
         self.setTransform(QTransform().scale(1, -1))
+        self.shift_pressed = False
+        #self.installEventFilter(self)
+        self.setMouseTracking(True)
 
     def resizeEvent(self, event):
         # Вызываем родительский метод для обработки изменения размера виджета
@@ -31,25 +39,27 @@ class CustomGraphicsView(QGraphicsView):
         self.centerOn(self.image.width() / 2, self.image.height() / 2)
 
     def mousePressEvent(self, event):
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        #print(modifiers == QtCore.Qt.ShiftModifier)
         if event.button() == Qt.LeftButton:
+            pos_scene = self.mapToScene(event.pos())
+
+            # Преобразуем координаты в координаты QGraphicsView
+            pos_view = self.mapFromScene(pos_scene)
+
+            # Вычисляем разницу между координатами и центром QGraphicsView
+            center = self.viewport().rect().center()
+            diff = pos_view - center
             try:
-                pos_scene = self.mapToScene(event.pos())
-
-                # Преобразуем координаты в координаты QGraphicsView
-                pos_view = self.mapFromScene(pos_scene)
-
-                # Вычисляем разницу между координатами и центром QGraphicsView
-                center = self.viewport().rect().center()
-                diff = pos_view - center
-
+                if modifiers == QtCore.Qt.ShiftModifier:
+                    self.keySignal.emit(diff, 0)
+                elif modifiers == QtCore.Qt.ControlModifier:
+                    self.keySignal.emit(diff, 1)
+                else:
+                    self.pointSignal.emit(diff)
             except Exception as e:
                 print(e)
 
-            try:
-                pass
-                self.pointSignal.emit(diff)
-            except Exception as e:
-                print(e)
             event.accept()
         elif event.button() == Qt.RightButton:
             self.endSignal.emit(0)
