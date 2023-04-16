@@ -5,7 +5,7 @@ import PyQt5
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPen, QTransform, QPainter, QPixmap, QColor, QImage
-from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel
 from fontTools.pens.qtPen import QtPen
 
 from alg import fill_polygon, brezenhem_int
@@ -48,6 +48,8 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         # self.all_polygon = [[PyQt5.QtCore.QPoint(-137, 124), PyQt5.QtCore.QPoint(-42, -97), PyQt5.QtCore.QPoint(72, 106), PyQt5.QtCore.QPoint(-137, 124)]]
         self.current_polygon = []
         self.all_polygon = []
+        self.count_poly = 0
+        self.cur_label = []
 
         self.tableWidget.setColumnCount(2)
         self.tableWidget.setRowCount(0)
@@ -57,8 +59,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tableWidget.horizontalHeaderItem(1).setToolTip("Column 2 ")
         self.tableWidget.horizontalHeaderItem(0).setTextAlignment(Qt.AlignLeft)
         self.tableWidget.horizontalHeaderItem(1).setTextAlignment(Qt.AlignRight)
-        self.add_row(10, 15)
-        self.add_row(20, 20)
+        # self.tableWidget.verticalHeader().setVisible(False)
 
         self.p_fill.clicked.connect(self.fill)
         # print(self.tableWidget.item().text())
@@ -78,13 +79,14 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                 points = fill_polygon(poly)
                 self.draw_points_normaly(points)
 
-        """
         for poly in self.all_polygon:
+
             for i in range(1, len(poly)):
                 try:
                     self.draw_line(poly[i - 1], poly[i])
                 except Exception as e:
-                    print(e)"""
+                    print(e)
+        self.all_polygon = []
 
     def add_row(self, num1, num2):
         self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -93,6 +95,9 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def add_point(self, point: QPoint):
         self.current_polygon.append(point)
+        self.cur_label.append(str(len(self.current_polygon)))
+        self.add_row(point.x(), point.y())
+        self.tableWidget.setVerticalHeaderLabels(self.cur_label)
         if len(self.current_polygon) == 1:
             try:
                 self.draw_point(point)
@@ -105,10 +110,18 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         if len(self.current_polygon) < 3:
             create_error_window("Error!", "Полигон должен состоять минимум из 3-х точек!")
         else:
+            self.count_poly += 1
+            self.cur_label.append("")
+
+            self.add_row("Многоугольник №" + str(self.count_poly), "")
+            self.tableWidget.setSpan(self.tableWidget.rowCount() - 1, 0, 1, 2)
+            self.tableWidget.setVerticalHeaderLabels(self.cur_label)
+
             self.current_polygon.append(self.current_polygon[0])
             self.draw_line(self.current_polygon[-1], self.current_polygon[-2])
             self.all_polygon.append(self.current_polygon)
             self.current_polygon = []
+
             print(self.all_polygon)
 
     def draw_point(self, point: QPoint):
@@ -140,13 +153,14 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                                 (round(point[1]) * -1 + self.image.width() // 2),
                                 black.rgb())
 
+
     def draw_points_normaly(self, all_points: list):
         # self.image.fill(Qt.white)
-        #new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
-        #new_image.fill(Qt.transparent)
+        # new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
+        # new_image.fill(Qt.transparent)
 
-        #res_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
-        #res_image.fill(Qt.transparent)
+        # res_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
+        # res_image.fill(Qt.transparent)
         # print(self.p.pen().color().getRgb())
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
@@ -161,34 +175,20 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
 
         for point in all_points:
             color = QColor(self.image.pixel(round(point[0]) + self.image.width() // 2,
-                                           (round(point[1]) * -1 + self.image.width() // 2)))
+                                            (round(point[1]) * -1 + self.image.width() // 2)))
 
             if color.rgb() == white.rgb():
                 self.image.setPixel(round(point[0]) + self.image.width() // 2,
-                                   (round(point[1]) * -1 + self.image.width() // 2),
-                                   green.rgb())
+                                    (round(point[1]) * -1 + self.image.width() // 2),
+                                    green.rgb())
             else:
                 self.image.setPixel(round(point[0]) + self.image.width() // 2,
-                                   (round(point[1]) * -1 + self.image.width() // 2),
-                                   white.rgb())
-        try:
-
-            #self.p.begin(self.image)
-            #self.p.setCompositionMode(QPainter.CompositionMode_SourceOver)
-            #self.p.drawImage(0, 0, new_image)
-
-
-            self.all_polygon = []
-
-            #self.p.end()
-        except Exception as e:
-            print(e)
+                                    (round(point[1]) * -1 + self.image.width() // 2),
+                                    white.rgb())
 
         self.scene.clear()
         self.scene.addPixmap(QPixmap.fromImage(self.image))
-        #self.image = res_image
-
-
+        # self.image = res_image
 
     def draw_points(self, all_points: list):
         # self.image.fill(Qt.white)
@@ -229,8 +229,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
             self.p.begin(self.image)
             self.p.setCompositionMode(QPainter.CompositionMode_SourceOver)
             self.p.drawImage(0, 0, new_image)
-
-            self.all_polygon = []
 
             # self.p.end()
         except Exception as e:

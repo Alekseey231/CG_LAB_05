@@ -27,7 +27,7 @@ def fill_polygon(polygon: List[QPoint]):
         while y < edge[1].y():
             x = get_intersection_point(edge[0], edge[1], y)
 
-            if floor(x) + 1 / 2 > x:
+            if floor(x) + 1 / 2 > x + 10:
                 points_for_edge.append([floor(x), floor(y)])
             x = floor(x)
             x += 1
