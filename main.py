@@ -7,7 +7,8 @@ import PyQt5
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QPen, QTransform, QPainter, QPixmap, QColor, QImage
-from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel, QApplication, QTableWidget
+from PyQt5.QtWidgets import QGraphicsScene, QTableWidgetItem, QMessageBox, QLabel, QApplication, QTableWidget, \
+    QColorDialog, QAction
 from fontTools.pens.qtPen import QtPen
 
 from alg import fill_polygon, brezenhem_int
@@ -22,6 +23,8 @@ def create_error_window(title, message):
     error.exec()
 
 
+# TODO вырождение в линию
+# TODO Очистка сцены
 class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,7 +37,12 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.graphicsView.keySignal.connect(self.key_press)
 
         self.pen = QPen()
-        self.pen.setColor(Qt.green)
+        self.color = QColor(Qt.green)
+
+        self.l_choosen_color.setStyleSheet("background-color: green")
+        self.l_choosen_color.clicked.connect(self.set_color)
+
+        self.setup_toolbar()
 
         self.image = self.graphicsView.image
         self.image.fill(Qt.white)
@@ -62,8 +70,16 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.p_fill.clicked.connect(self.fill)
 
         self.b_clear.clicked.connect(self.clear_scene)
+        self.b_choose_color.clicked.connect(self.set_color)
 
         # self.set_validators()
+
+    def set_color(self):
+        color = QColorDialog.getColor()
+
+        if color.isValid():
+            self.l_choosen_color.setStyleSheet("background-color: {}".format(color.name()))
+            self.color = color
 
     def init_table(self):
         self.tableWidget.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -77,12 +93,16 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tableWidget.horizontalHeaderItem(1).setTextAlignment(Qt.AlignRight)
 
     def clear_scene(self):
-        #self.tableWidget.clear()
+        self.image.fill(Qt.transparent)
         self.tableWidget.setRowCount(0)
-        self.image = self.graphicsView.image
+        self.image = QImage(5000, 5000, QImage.Format_ARGB32)
         self.image.fill(Qt.white)
         self.scene.clear()
         self.scene.addPixmap(QPixmap.fromImage(self.image))
+        self.current_polygon = []
+        self.all_polygon = []
+        self.cur_label = []
+        self.count_poly = 0
 
     def fill(self):
         if self.comboBox.currentIndex() == 0:
@@ -111,7 +131,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.tableWidget.setItem(self.tableWidget.rowCount() - 1, 0, QTableWidgetItem(str(num1)))
         self.tableWidget.setItem(self.tableWidget.rowCount() - 1, 1, QTableWidgetItem(str(num2)))
 
-    #shift - вертикальное ребро
+    # shift - вертикальное ребро
     def key_press(self, point: QPoint, sign_type: int):
         if len(self.current_polygon) > 0:
             if sign_type == 0:
@@ -120,8 +140,13 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
                 point = QPoint(point.x(), self.current_polygon[-1].y())
         self.add_point(point)
 
-
     def add_point(self, point: QPoint):
+        if len(self.current_polygon) == 0:
+            self.count_poly += 1
+            self.cur_label.append("")
+            self.add_row("Многоугольник №" + str(self.count_poly), "")
+            self.tableWidget.setSpan(self.tableWidget.rowCount() - 1, 0, 1, 2)
+            self.tableWidget.setVerticalHeaderLabels(self.cur_label)
         self.current_polygon.append(point)
         self.cur_label.append(str(len(self.current_polygon)))
         self.add_row(point.x(), point.y())
@@ -138,19 +163,19 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         if len(self.current_polygon) < 3:
             create_error_window("Error!", "Полигон должен состоять минимум из 3-х точек!")
         else:
-            self.count_poly += 1
-            self.cur_label.append("")
+            # self.count_poly += 1
+            # self.cur_label.append("")
 
-            self.add_row("Многоугольник №" + str(self.count_poly), "")
-            self.tableWidget.setSpan(self.tableWidget.rowCount() - 1, 0, 1, 2)
-            self.tableWidget.setVerticalHeaderLabels(self.cur_label)
+            # self.add_row("Многоугольник №" + str(self.count_poly), "")
+            # self.tableWidget.setSpan(self.tableWidget.rowCount() - 1, 0, 1, 2)
+            # self.tableWidget.setVerticalHeaderLabels(self.cur_label)
 
             self.current_polygon.append(self.current_polygon[0])
             self.draw_line(self.current_polygon[-1], self.current_polygon[-2])
             self.all_polygon.append(self.current_polygon)
             self.current_polygon = []
 
-            #print(self.all_polygon)
+            # print(self.all_polygon)
 
     def draw_point(self, point: QPoint):
 
@@ -187,7 +212,7 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
             count = 0
             for row in gen:
                 self.draw_points_normaly(row)
-                count+=1
+                count += 1
                 self.graphicsView.update()
                 QApplication.processEvents()
                 time.sleep(0.0001)
@@ -198,7 +223,8 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
     def draw_points_normaly(self, all_points: list):
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
-        green = QColor(0, 255, 0)
+        # green = QColor(0, 255, 0)
+        green = self.color
 
         for point in all_points:
             color = QColor(self.image.pixel(round(point[0]) + self.image.width() // 2,
@@ -228,7 +254,8 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         # print(self.p.pen().color().getRgb())
         white = QColor(255, 255, 255, 255)
         black = QColor(0, 0, 0, 255)
-        green = QColor(0, 255, 0, 255)
+        # green = QColor(0, 255, 0, 255)
+        green = self.color
         # print(color.rgb())
         # self.image.setPixel(0 + self.image.width() / 2, 0 + self.image.width() / 2, self.p.pen().color().rgb())
 
@@ -265,6 +292,44 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.scene.clear()
         self.scene.addPixmap(QPixmap.fromImage(self.image))
         # self.image = res_image
+
+    def setup_toolbar(self):
+        close = QAction('О программе', self)
+        close.triggered.connect(self.about_program)
+        self.toolbar = self.addToolBar("О программе")
+        self.toolbar.addAction(close)
+
+        close = QAction('Об авторе', self)
+        close.triggered.connect(self.about_author)
+        self.toolbar = self.addToolBar("Об авторе")
+        self.toolbar.addAction(close)
+
+        close = QAction('Справка', self)
+        close.triggered.connect(self.info)
+        self.toolbar = self.addToolBar("Справка")
+        self.toolbar.addAction(close)
+
+        close = QAction('Закрыть', self)
+        close.triggered.connect(self.close)
+        self.toolbar = self.addToolBar("Закрыть")
+        self.toolbar.addAction(close)
+
+
+    def about_author(self):
+        create_error_window("Об авторе", "Толмачев Алексей; ИУ7-45B")
+
+    def about_program(self):
+        create_error_window("О программе",
+                            "Реализован алгоритм заполнения области по ребрам")
+
+    def info(self):
+        create_error_window("Справка",
+                            "1) Ввод точек на графическую сцену осуществляется с помощью левой кнопки мыши или с помощью "
+                            "ввода в соответствующие поля координат в интерфейсе\n "
+                            "2) С помощью правой кнопки мыши можно замкнуть область\n"
+                            "3) Для того, чтобы построить вертикальное ребро - после ввода точки нужно удерживать "
+                            "shift при вводе следующей точки\n"
+                            "4) Для построения горизонтального ребра нужно удерживать Ctrl при вводе следующей точки\n")
 
 
 def compare_colors(color1, color2):

@@ -11,14 +11,23 @@ from typing import List, Union
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, pyqtSignal, QPoint, QPointF, QEvent
 from PyQt5.QtGui import QTransform, QImage, QMouseEvent
-from PyQt5.QtWidgets import QGraphicsView, QApplication
+from PyQt5.QtWidgets import QGraphicsView, QApplication, QLabel
+
+
+class ClickableLabel(QLabel):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+
+    clicked = QtCore.pyqtSignal()
 
 
 class CustomGraphicsView(QGraphicsView):
     pointSignal = pyqtSignal(QPoint)
     endSignal = pyqtSignal(int)
     keySignal = pyqtSignal(QPoint, int)
-
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,8 +39,10 @@ class CustomGraphicsView(QGraphicsView):
         self.zoom = 0
         self.setTransform(QTransform().scale(1, -1))
         self.shift_pressed = False
-        #self.installEventFilter(self)
+        # self.installEventFilter(self)
         self.setMouseTracking(True)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
     def resizeEvent(self, event):
         # Вызываем родительский метод для обработки изменения размера виджета
@@ -40,7 +51,7 @@ class CustomGraphicsView(QGraphicsView):
 
     def mousePressEvent(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
-        #print(modifiers == QtCore.Qt.ShiftModifier)
+        # print(modifiers == QtCore.Qt.ShiftModifier)
         if event.button() == Qt.LeftButton:
             pos_scene = self.mapToScene(event.pos())
 
@@ -65,35 +76,6 @@ class CustomGraphicsView(QGraphicsView):
             self.endSignal.emit(0)
         else:
             super().mousePressEvent(event)
-
-
-"""
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.setCursor(Qt.ClosedHandCursor)
-            self._start_pos = event.pos()  # запоминаем начальное положение мыши
-            event.accept()
-        else:
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self._start_pos is not None:
-            delta = event.pos() - self._start_pos  # вычисляем вектор смещения
-            self._start_pos = event.pos()  # обновляем начальное положение мыши
-            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
-            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
-            event.accept()
-        else:
-            super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.setCursor(Qt.ArrowCursor)
-            self._start_pos = None  # очищаем начальное положение мыши
-            event.accept()
-        else:
-            super().mouseReleaseEvent(event)
-"""
 
 
 class Ui_MainWindow(object):
@@ -148,7 +130,7 @@ class Ui_MainWindow(object):
         self.groupBox_2.setObjectName("groupBox_2")
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.groupBox_2)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.l_choosen_color = QtWidgets.QLabel(self.groupBox_2)
+        self.l_choosen_color = ClickableLabel(self.groupBox_2)
         self.l_choosen_color.setText("")
         self.l_choosen_color.setObjectName("l_choosen_color")
         self.verticalLayout_3.addWidget(self.l_choosen_color)
