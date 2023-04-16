@@ -71,8 +71,19 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.b_clear.clicked.connect(self.clear_scene)
         self.b_choose_color.clicked.connect(self.set_color)
+        self.b_add_point.clicked.connect(self.get_point)
+        self.b_get_time.clicked.connect(self.get_time)
 
         # self.set_validators()
+
+    def get_point(self):
+        try:
+            x = int(self.l_x.text())
+            y = int(self.l_y.text())
+        except Exception as e:
+            create_error_window("Error!", "Некорретный ввод")
+        else:
+            self.add_point(QPoint(x, y))
 
     def set_color(self):
         color = QColorDialog.getColor()
@@ -105,26 +116,33 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.count_poly = 0
 
     def fill(self):
+        if len(self.current_polygon):
+            create_error_window("Error!", "Необходимо закончить ввод области перед заливкой")
+            return
+        if len(self.all_polygon) == 0:
+            create_error_window("Error!", "Необходимо закончить ввод области перед заливкой")
+            return
+        # print(self.all_polygon)
+        self.image.fill(Qt.white)
+        for poly in self.all_polygon:
+
+            for i in range(1, len(poly)):
+                try:
+                    self.draw_line(poly[i - 1], poly[i])
+                except Exception as e:
+                    print(e)
         if self.comboBox.currentIndex() == 0:
             if len(self.all_polygon) == 1:
                 points = fill_polygon(self.all_polygon[0])
-                self.draw_points(points)
+                self.draw_points_all(points)
             else:
                 for poly in self.all_polygon:
                     points = fill_polygon(poly)
-                    self.draw_points_normaly(points)
-
-            for poly in self.all_polygon:
-
-                for i in range(1, len(poly)):
-                    try:
-                        self.draw_line(poly[i - 1], poly[i])
-                    except Exception as e:
-                        print(e)
+                    self.draw_points_all(points)
         else:
             for poly in self.all_polygon:
                 self.draw_time(poly)
-        self.all_polygon = []
+        # self.all_polygon = []
 
     def add_row(self, num1, num2):
         self.tableWidget.insertRow(self.tableWidget.rowCount())
@@ -220,6 +238,30 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         except Exception as e:
             print(e)
 
+    def draw_points_all(self, all_points: list):
+        white = QColor(255, 255, 255)
+        black = QColor(0, 0, 0)
+        # green = QColor(0, 255, 0)
+        green = self.color
+
+        for point in all_points:
+            color = QColor(self.image.pixel(round(point[0]) + self.image.width() // 2,
+                                            (round(point[1]) * -1 + self.image.width() // 2)))
+
+            if color.rgb() == white.rgb():
+                self.image.setPixel(round(point[0]) + self.image.width() // 2,
+                                    (round(point[1]) * -1 + self.image.width() // 2),
+                                    green.rgb())
+            elif color.rgb() == black.rgb():
+                pass
+            else:
+                self.image.setPixel(round(point[0]) + self.image.width() // 2,
+                                    (round(point[1]) * -1 + self.image.width() // 2),
+                                    white.rgb())
+
+        self.scene.clear()
+        self.scene.addPixmap(QPixmap.fromImage(self.image))
+
     def draw_points_normaly(self, all_points: list):
         white = QColor(255, 255, 255)
         black = QColor(0, 0, 0)
@@ -245,24 +287,11 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.scene.addPixmap(QPixmap.fromImage(self.image))
 
     def draw_points(self, all_points: list):
-        # self.image.fill(Qt.white)
         new_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
         new_image.fill(Qt.transparent)
-
-        # res_image = QImage(self.image.width(), self.image.height(), QImage.Format_ARGB32)
-        # res_image.fill(Qt.transparent)
-        # print(self.p.pen().color().getRgb())
         white = QColor(255, 255, 255, 255)
         black = QColor(0, 0, 0, 255)
-        # green = QColor(0, 255, 0, 255)
         green = self.color
-        # print(color.rgb())
-        # self.image.setPixel(0 + self.image.width() / 2, 0 + self.image.width() / 2, self.p.pen().color().rgb())
-
-        # color = QColor(self.image.pixel(0, 0))
-        # print(color.getRgb())
-
-        # print(QColor(self.image.pixel(0, 0)).getRgb() == (255, 255, 255, 255))
         try:
             for point in all_points:
 
@@ -293,6 +322,16 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         self.scene.addPixmap(QPixmap.fromImage(self.image))
         # self.image = res_image
 
+    def get_time(self):
+        self.comboBox.setCurrentIndex(0)
+        start_time = time.time()
+        self.fill()
+        end_time = time.time()
+        try:
+            create_error_window("Замеры времени: ", "{:.3f}".format(end_time - start_time))
+        except Exception as e:
+            print(e)
+
     def setup_toolbar(self):
         close = QAction('О программе', self)
         close.triggered.connect(self.about_program)
@@ -313,7 +352,6 @@ class Main_window(QtWidgets.QMainWindow, Ui_MainWindow):
         close.triggered.connect(self.close)
         self.toolbar = self.addToolBar("Закрыть")
         self.toolbar.addAction(close)
-
 
     def about_author(self):
         create_error_window("Об авторе", "Толмачев Алексей; ИУ7-45B")
